@@ -62,6 +62,78 @@ body {
   @apply animate-spin rounded-full border-2 border-gray-300 border-t-blue-600;
 }
 
+/* Touch-friendly utilities */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.touch-pan-x {
+  touch-action: pan-x;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+/* Mobile-specific utilities */
+@media (max-width: 767px) {
+  .mobile-full-height {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Responsive text utilities */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg sm:text-xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl sm:text-2xl;
+}
+
+/* Responsive spacing utilities */
+.space-responsive-sm > * + * {
+  @apply mt-2 sm:mt-3;
+}
+
+.space-responsive-md > * + * {
+  @apply mt-3 sm:mt-4;
+}
+
+.space-responsive-lg > * + * {
+  @apply mt-4 sm:mt-6;
+}
+
+/* Responsive padding utilities */
+.p-responsive {
+  @apply p-3 sm:p-4 lg:p-6;
+}
+
+.px-responsive {
+  @apply px-3 sm:px-4 lg:px-6;
+}
+
+.py-responsive {
+  @apply py-3 sm:py-4 lg:py-6;
+}
+
 /* Gradient backgrounds */
 .gradient-primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
