@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
     "framer-motion": "^12.23.12",
     "next": "15.4.6",
@@ -28,7 +29,8 @@
     "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "^26.1.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
 }

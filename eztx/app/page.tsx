@@ -263,13 +263,13 @@ export default function Home() {
                     </TouchFriendly>
                   )}
 
-                  {/* Demo Animation Showcase */}
+                  {/* Demo Transaction Showcase */}
                   {!currentTransaction && (
                     <TouchFriendly>
                       <AnimatedCard delay={0.3}>
                         <div className="p-4 sm:p-6">
                           <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 mb-4 sm:mb-6`}>
-                            Animation Showcase
+                            Transaction Status
                           </h3>
                           
                           <div className="space-y-3 sm:space-y-4">
