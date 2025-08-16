@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PaymentRequest } from '@/types'
+import { useENS, useENSValidation } from '@/hooks/useENS'
 
 interface PaymentFormProps {
   onSubmit: (payment: PaymentRequest) => void
@@ -19,63 +20,58 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [recipientInput, setRecipientInput] = useState('')
-  const [recipientAddress, setRecipientAddress] = useState('')
-  const [recipientENS, setRecipientENS] = useState<string | undefined>()
   const [errors, setErrors] = useState<FormErrors>({})
-  const [isResolvingENS, setIsResolvingENS] = useState(false)
+  
+  // Use the ENS hook
+  const { 
+    resolvedAddress, 
+    resolvedENS, 
+    isResolving: isResolvingENS, 
+    error: ensError, 
+    resolveENS, 
+    clearResults 
+  } = useENS()
+  
+  const { validateENSName } = useENSValidation()
 
   // ENS resolution effect
   useEffect(() => {
-    const resolveENS = async () => {
+    const handleInputChange = async () => {
       if (!recipientInput.trim()) {
-        setRecipientAddress('')
-        setRecipientENS(undefined)
+        clearResults()
+        setErrors(prev => ({ ...prev, recipientAddress: undefined }))
         return
       }
 
       // Check if input looks like an ENS name
-      if (recipientInput.includes('.eth') || recipientInput.includes('.')) {
-        setIsResolvingENS(true)
-        try {
-          // Mock ENS resolution for now - will be replaced with actual service
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          // Simulate successful ENS resolution
-          if (recipientInput.endsWith('.eth')) {
-            const mockAddress = '0x' + Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')
-            setRecipientAddress(mockAddress)
-            setRecipientENS(recipientInput)
+      if (recipientInput.includes('.eth')) {
+        if (validateENSName(recipientInput)) {
+          try {
+            await resolveENS(recipientInput)
             setErrors(prev => ({ ...prev, recipientAddress: undefined }))
-          } else {
-            throw new Error('ENS name not found')
+          } catch (error) {
+            // Error is handled by the useENS hook
           }
-        } catch (error) {
-          setRecipientAddress('')
-          setRecipientENS(undefined)
+        } else {
           setErrors(prev => ({ 
             ...prev, 
-            recipientAddress: 'ENS name could not be resolved. Please enter a valid wallet address.' 
+            recipientAddress: 'Invalid ENS name format' 
           }))
-        } finally {
-          setIsResolvingENS(false)
         }
       } else if (recipientInput.startsWith('0x') && recipientInput.length === 42) {
         // Validate Ethereum address format
         if (/^0x[a-fA-F0-9]{40}$/.test(recipientInput)) {
-          setRecipientAddress(recipientInput)
-          setRecipientENS(undefined)
+          clearResults()
           setErrors(prev => ({ ...prev, recipientAddress: undefined }))
         } else {
-          setRecipientAddress('')
-          setRecipientENS(undefined)
+          clearResults()
           setErrors(prev => ({ 
             ...prev, 
             recipientAddress: 'Invalid wallet address format' 
           }))
         }
       } else {
-        setRecipientAddress('')
-        setRecipientENS(undefined)
+        clearResults()
         if (recipientInput.length > 0) {
           setErrors(prev => ({ 
             ...prev, 
@@ -85,9 +81,19 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
       }
     }
 
-    const timeoutId = setTimeout(resolveENS, 300)
+    const timeoutId = setTimeout(handleInputChange, 300)
     return () => clearTimeout(timeoutId)
-  }, [recipientInput])
+  }, [recipientInput, resolveENS, clearResults, validateENSName])
+
+  // Handle ENS errors
+  useEffect(() => {
+    if (ensError) {
+      setErrors(prev => ({ 
+        ...prev, 
+        recipientAddress: ensError 
+      }))
+    }
+  }, [ensError])
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -101,7 +107,8 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
     }
 
     // Validate recipient
-    if (!recipientAddress) {
+    const finalRecipientAddress = resolvedAddress || (recipientInput.startsWith('0x') ? recipientInput : '')
+    if (!finalRecipientAddress) {
       newErrors.recipientAddress = 'Please enter a valid recipient address or ENS name'
     }
 
@@ -120,11 +127,13 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
       return
     }
 
+    const finalRecipientAddress = resolvedAddress || (recipientInput.startsWith('0x') ? recipientInput : '')
+    
     const paymentRequest: PaymentRequest = {
       amount: parseFloat(amount),
       currency,
-      recipientAddress,
-      recipientENS
+      recipientAddress: finalRecipientAddress,
+      recipientENS: resolvedENS || undefined
     }
 
     onSubmit(paymentRequest)
@@ -222,17 +231,17 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
             </div>
             
             {/* Show resolved address */}
-            {recipientENS && recipientAddress && (
+            {resolvedENS && resolvedAddress && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="mt-2 p-3 bg-success-50 border border-success-200 rounded-lg"
               >
                 <p className="text-sm text-success-800">
-                  <span className="font-medium">{recipientENS}</span> resolves to:
+                  <span className="font-medium">{resolvedENS}</span> resolves to:
                 </p>
                 <p className="text-xs text-success-600 font-mono break-all mt-1">
-                  {recipientAddress}
+                  {resolvedAddress}
                 </p>
               </motion.div>
             )}
@@ -251,14 +260,14 @@ export default function PaymentForm({ onSubmit, isLoading }: PaymentFormProps) {
           {/* Submit Button */}
           <motion.button
             type="submit"
-            disabled={isLoading || !recipientAddress || !amount}
+            disabled={isLoading || !(resolvedAddress || (recipientInput.startsWith('0x') && recipientInput.length === 42)) || !amount}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className={`
               w-full py-3 sm:py-4 px-4 sm:px-6 rounded-xl font-semibold text-white
               text-sm sm:text-base transition-all duration-200
               ${
-                isLoading || !recipientAddress || !amount
+                isLoading || !(resolvedAddress || (recipientInput.startsWith('0x') && recipientInput.length === 42)) || !amount
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-primary-600 hover:bg-primary-700 shadow-medium hover:shadow-strong'
               }

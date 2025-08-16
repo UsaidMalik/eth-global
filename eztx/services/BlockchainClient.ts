@@ -120,7 +120,9 @@ export class BlockchainClient implements BlockchainClientInterface {
   }
 
   getAccount(): string | null {
-    return this.signer?.address || null;
+    if (!this.signer) return null;
+    // In ethers v6, address might not be immediately available
+    return (this.signer as any).address || null;
   }
 
   async getBalance(address?: string): Promise<bigint> {
@@ -297,8 +299,8 @@ export class BlockchainClient implements BlockchainClientInterface {
       return {
         gasLimit: adjustedGasLimit,
         gasPrice: finalGasPrice,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
+        maxFeePerGas: maxFeePerGas || undefined,
+        maxPriorityFeePerGas: maxPriorityFeePerGas || undefined,
         totalCost: adjustedGasLimit * finalGasPrice
       };
     } catch (error) {
